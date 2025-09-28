@@ -23,29 +23,11 @@ resource "aws_iam_role" "logger_execution" {
 }
 
 data "aws_iam_policy_document" "logger_execution" {
-  statement {
-    effect = "Allow"
-    actions = [
-      "ecr:GetAuthorizationToken",
-      "ecr:BatchCheckLayerAvailability",
-      "ecr:GetDownloadUrlForLayer",
-      "ecr:BatchGetImage"
-    ]
-    resources = ["*"]
-  }
-
-  statement {
-    effect = "Allow"
-    actions = [
-      "logs:CreateLogGroup",
-      "logs:CreateLogStream",
-      "logs:PutLogEvents"
-    ]
-    resources = [
-      "arn:aws:logs:*:*:log-group:/ecs/${var.project_full_name}-logger",
-      "arn:aws:logs:*:*:log-group:/ecs/${var.project_full_name}-logger:*"
-    ]
-  }
+  source_policy_documents = [
+    templatefile("${path.module}/policies/execution-role-policy.json", {
+      project_full_name = var.project_full_name
+    })
+  ]
 }
 
 resource "aws_iam_role_policy" "logger_execution" {
@@ -77,29 +59,11 @@ resource "aws_iam_role" "logger_task" {
 }
 
 data "aws_iam_policy_document" "logger_task" {
-  statement {
-    effect = "Allow"
-    actions = [
-      "logs:CreateLogStream",
-      "logs:PutLogEvents"
-    ]
-    resources = [
-      "arn:aws:logs:*:*:log-group:/ecs/${var.project_full_name}-logger",
-      "arn:aws:logs:*:*:log-group:/ecs/${var.project_full_name}-logger:*"
-    ]
-  }
-
-  # Allow ECS Exec for debugging
-  statement {
-    effect = "Allow"
-    actions = [
-      "ssmmessages:CreateControlChannel",
-      "ssmmessages:CreateDataChannel",
-      "ssmmessages:OpenControlChannel",
-      "ssmmessages:OpenDataChannel"
-    ]
-    resources = ["*"]
-  }
+  source_policy_documents = [
+    templatefile("${path.module}/policies/task-role-policy.json", {
+      project_full_name = var.project_full_name
+    })
+  ]
 }
 
 resource "aws_iam_role_policy" "logger_task" {
