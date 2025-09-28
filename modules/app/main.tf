@@ -1,3 +1,81 @@
+# Data sources for networking
+data "aws_vpc" "default" {
+  default = true
+}
+
+data "aws_subnets" "default" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.default.id]
+  }
+}
+
+# Security Group for ECS tasks
+resource "aws_security_group" "ecs_tasks" {
+  name_prefix = "${var.project_full_name}-ecs-tasks"
+  vpc_id      = data.aws_vpc.default.id
+
+  ingress {
+    protocol         = "tcp"
+    from_port        = 80
+    to_port          = 80
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  ingress {
+    protocol         = "tcp"
+    from_port        = 443
+    to_port          = 443
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  egress {
+    protocol         = "-1"
+    from_port        = 0
+    to_port          = 0
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  tags = {
+    Environment = var.environment_name
+    Project     = var.project_full_name
+  }
+}
+
+# ECS Cluster
+resource "aws_ecs_cluster" "main" {
+  name = var.ecs_cluster
+
+  configuration {
+    execute_command_configuration {
+      logging    = "OVERRIDE"
+      log_driver = "awslogs"
+      log_configuration = {
+        cloud_watch_log_group_name = "/aws/ecs/cluster/${var.ecs_cluster}"
+      }
+    }
+  }
+
+  tags = {
+    Environment = var.environment_name
+    Project     = var.project_full_name
+  }
+}
+
+# CloudWatch Log Group for ECS Cluster
+resource "aws_cloudwatch_log_group" "ecs_cluster" {
+  name              = "/aws/ecs/cluster/${var.ecs_cluster}"
+  retention_in_days = 7
+
+  tags = {
+    Environment = var.environment_name
+    Project     = var.project_full_name
+  }
+}
+
 # iam
 ## execution
 resource "aws_iam_role" "logger_execution" {
@@ -75,17 +153,19 @@ resource "aws_iam_role_policy" "logger_task" {
 ## ecs cluster
 resource "aws_ecs_service" "logger_service" {
   name                   = "${var.project_full_name}-logger"
-  cluster                = var.ecs_cluster
+  cluster                = aws_ecs_cluster.main.id
   task_definition        = aws_ecs_task_definition.logger.arn
   desired_count          = 1
   launch_type            = "FARGATE"
   enable_execute_command = true
 
   network_configuration {
-    subnets          = var.subnets
-    security_groups  = var.security_groups
+    subnets          = length(var.subnets) > 0 ? var.subnets : data.aws_subnets.default.ids
+    security_groups  = length(var.security_groups) > 0 ? var.security_groups : [aws_security_group.ecs_tasks.id]
     assign_public_ip = true
   }
+
+  depends_on = [aws_ecs_cluster.main]
 }
 
 ## ecs task definition
@@ -99,12 +179,12 @@ resource "aws_ecs_task_definition" "logger" {
   task_role_arn            = aws_iam_role.logger_task.arn
 
   container_definitions = templatefile("${path.module}/templates/logger.json", {
-    PROJECT_FULL_NAME  = var.project_full_name,
-    ENVIRONMENT        = var.environment_name,
-    AWS_ACCOUNT_ID     = var.aws_account_id,
+    PROJECT_FULL_NAME = var.project_full_name,
+    ENVIRONMENT       = var.environment_name,
+    AWS_ACCOUNT_ID    = var.aws_account_id,
+    AWS_REGION        = var.aws_region
   })
 }
-
 
 # ecr
 ## ecr repository

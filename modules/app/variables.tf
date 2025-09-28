@@ -19,6 +19,11 @@ variable "aws_account_id" {
   type        = string
 }
 
+variable "aws_region" {
+  description = "AWS Region"
+  type        = string
+}
+
 variable "ecs_cluster" {
   description = "ECS cluster name or ARN where the service will be deployed"
   type        = string

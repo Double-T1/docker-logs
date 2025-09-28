@@ -1,7 +1,7 @@
 [
   {
     "name": "logger",
-    "image": "${AWS_ACCOUNT_ID}.dkr.ecr.ap-southeast-1.amazonaws.com/${PROJECT_FULL_NAME}-logger:latest",
+    "image": "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${PROJECT_FULL_NAME}-logger:latest",
     "cpu": 256,
     "memory": 512,
     "portMappings": [
@@ -21,7 +21,7 @@
       },
       {
         "name": "AWS_REGION",
-        "value": "ap-southeast-1"
+        "value": "${AWS_REGION}"
       },
       {
         "name": "LOG_LEVEL",
@@ -36,7 +36,7 @@
       "options": {
         "awslogs-group": "/ecs/${PROJECT_FULL_NAME}-logger",
         "awslogs-create-group": "true",
-        "awslogs-region": "ap-southeast-1",
+        "awslogs-region": "${AWS_REGION}",
         "awslogs-stream-prefix": "ecs"
       }
     },

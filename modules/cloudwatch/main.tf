@@ -1,3 +1,6 @@
+# Get current region
+data "aws_region" "current" {}
+
 # log group
 resource "aws_cloudwatch_log_group" "logger" {
   name              = "/ecs/${var.project_full_name}-logger"
@@ -118,7 +121,7 @@ resource "aws_cloudwatch_dashboard" "logger_dashboard" {
           ]
           view    = "timeSeries"
           stacked = false
-          region  = "ap-southeast-1"
+          region  = data.aws_region.current.name
           title   = "Log Levels Over Time"
           period  = 300
         }
@@ -134,11 +137,11 @@ resource "aws_cloudwatch_dashboard" "logger_dashboard" {
           metrics = [
             ["ECS/Logs", "${var.project_full_name}-error-count"]
           ]
-          view    = "singleValue"
-          region  = "ap-southeast-1"
-          title   = "Total Errors (24h)"
-          period  = 86400
-          stat    = "Sum"
+          view   = "singleValue"
+          region = data.aws_region.current.name
+          title  = "Total Errors (24h)"
+          period = 86400
+          stat   = "Sum"
         }
       },
       {
@@ -152,11 +155,11 @@ resource "aws_cloudwatch_dashboard" "logger_dashboard" {
           metrics = [
             ["ECS/Logs", "${var.project_full_name}-warn-count"]
           ]
-          view    = "singleValue"
-          region  = "ap-southeast-1"
-          title   = "Total Warnings (24h)"
-          period  = 86400
-          stat    = "Sum"
+          view   = "singleValue"
+          region = data.aws_region.current.name
+          title  = "Total Warnings (24h)"
+          period = 86400
+          stat   = "Sum"
         }
       },
       {
@@ -167,9 +170,9 @@ resource "aws_cloudwatch_dashboard" "logger_dashboard" {
         height = 6
 
         properties = {
-          query   = "SOURCE '/ecs/${var.project_full_name}-logger'\n| fields @timestamp, @message\n| filter @message like /ERROR/\n| sort @timestamp desc\n| limit 20"
-          region  = "ap-southeast-1"
-          title   = "Recent Error Logs"
+          query  = "SOURCE '/ecs/${var.project_full_name}-logger'\n| fields @timestamp, @message\n| filter @message like /ERROR/\n| sort @timestamp desc\n| limit 20"
+          region = data.aws_region.current.name
+          title  = "Recent Error Logs"
         }
       }
     ]
