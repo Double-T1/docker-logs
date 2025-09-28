@@ -6,7 +6,6 @@ remote_state {
     bucket         = "terragrunt-state-${get_aws_account_id()}-${local.aws_region}"
     key            = "${path_relative_to_include()}/terraform.tfstate"
     region         = local.aws_region
-    dynamodb_table = "terragrunt-locks"
   }
   generate = {
     path      = "backend.tf"
