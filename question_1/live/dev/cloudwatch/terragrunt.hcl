@@ -7,11 +7,8 @@ terraform {
 }
 
 locals {
-  # Load root configuration
   root_vars = read_terragrunt_config(find_in_parent_folders("root.hcl"))
   env_vars  = read_terragrunt_config(find_in_parent_folders("env.hcl"))
-
-  # Construct project name with environment
   project_full_name = "${local.root_vars.locals.project_name}-${local.env_vars.locals.environment}"
 }
 
@@ -21,5 +18,5 @@ inputs = {
   log_retention_days   = 7
   error_threshold      = 3
   warning_threshold    = 5
-  sns_topic_arn       = ""  # Add SNS topic ARN if you want notifications
+  sns_topic_arn       = ""  # Add SNS topic ARN for development alerts
 }

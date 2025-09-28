@@ -9,7 +9,6 @@ terraform {
 locals {
   root_vars = read_terragrunt_config(find_in_parent_folders("root.hcl"))
   env_vars  = read_terragrunt_config(find_in_parent_folders("env.hcl"))
-
   project_full_name = "${local.root_vars.locals.project_name}-${local.env_vars.locals.environment}"
 }
 

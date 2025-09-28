@@ -15,6 +15,53 @@
 - 用於日誌視覺化的 CloudWatch DashBoard
 - 用於錯誤監控的 CloudWatch Alarm
 - 預設使用 default VPC
+- **SNS 通知整合**：支援不同環境的告警通知配置
+
+## SNS 通知配置
+
+### 環境差異
+
+各環境的 SNS 配置和告警閾值設計不同：
+
+#### 開發環境 (Dev)
+
+- **錯誤閾值**: 3 次錯誤觸發告警
+- **警告閾值**: 5 次警告觸發告警
+- **日誌保留**: 7 天
+- **SNS 用途**: 開發團隊內部通知，通常配置為 Slack 或開發郵件群組
+- **告警頻率**: 較敏感，便於早期發現問題
+
+#### UAT 環境 (UAT)
+
+- **錯誤閾值**: 2 次錯誤觸發告警（最敏感）
+- **警告閾值**: 4 次警告觸發告警
+- **日誌保留**: 14 天
+- **SNS 用途**: 測試團隊和 QA 通知，確保測試階段問題及時發現
+- **告警頻率**: 最敏感設置，確保測試品質
+
+#### 生產環境 (Prod)
+
+- **錯誤閾值**: 5 次錯誤觸發告警（較保守）
+- **警告閾值**: 10 次警告觸發告警
+- **日誌保留**: 30 天（法規遵循）
+- **SNS 用途**: 營運團隊、監控中心、管理層通知
+- **告警頻率**: 較保守設置，避免過多誤報
+
+### SNS 主題配置建議
+
+```bash
+# 為各環境建立 SNS 主題
+aws sns create-topic --name docker-logs-dev-alerts
+aws sns create-topic --name docker-logs-uat-alerts
+aws sns create-topic --name docker-logs-prod-alerts
+
+# 訂閱不同的通知端點
+aws sns subscribe --topic-arn arn:aws:sns:us-west-2:ACCOUNT:docker-logs-dev-alerts \
+  --protocol email --notification-endpoint dev-team@company.com
+
+aws sns subscribe --topic-arn arn:aws:sns:us-west-2:ACCOUNT:docker-logs-prod-alerts \
+  --protocol email --notification-endpoint ops-team@company.com
+```
 
 ## 部署步驟
 
