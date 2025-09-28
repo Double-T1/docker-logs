@@ -1,29 +1,105 @@
 # iam
 ## execution
 resource "aws_iam_role" "logger_execution" {
+  name = "${var.project_full_name}-logger-execution-role"
 
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = {
+    Environment = var.environment_name
+    Project     = var.project_full_name
+  }
 }
-
 
 data "aws_iam_policy_document" "logger_execution" {
+  statement {
+    effect = "Allow"
+    actions = [
+      "ecr:GetAuthorizationToken",
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:GetDownloadUrlForLayer",
+      "ecr:BatchGetImage"
+    ]
+    resources = ["*"]
+  }
 
+  statement {
+    effect = "Allow"
+    actions = [
+      "logs:CreateLogGroup",
+      "logs:CreateLogStream",
+      "logs:PutLogEvents"
+    ]
+    resources = [
+      "arn:aws:logs:*:*:log-group:/ecs/${var.project_full_name}-logger",
+      "arn:aws:logs:*:*:log-group:/ecs/${var.project_full_name}-logger:*"
+    ]
+  }
 }
-
 
 resource "aws_iam_role_policy" "logger_execution" {
   role   = aws_iam_role.logger_execution.id
   policy = data.aws_iam_policy_document.logger_execution.json
 }
 
-
 ## task
 resource "aws_iam_role" "logger_task" {
+  name = "${var.project_full_name}-logger-task-role"
 
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = {
+    Environment = var.environment_name
+    Project     = var.project_full_name
+  }
 }
 
-
 data "aws_iam_policy_document" "logger_task" {
+  statement {
+    effect = "Allow"
+    actions = [
+      "logs:CreateLogStream",
+      "logs:PutLogEvents"
+    ]
+    resources = [
+      "arn:aws:logs:*:*:log-group:/ecs/${var.project_full_name}-logger",
+      "arn:aws:logs:*:*:log-group:/ecs/${var.project_full_name}-logger:*"
+    ]
+  }
 
+  # Allow ECS Exec for debugging
+  statement {
+    effect = "Allow"
+    actions = [
+      "ssmmessages:CreateControlChannel",
+      "ssmmessages:CreateDataChannel",
+      "ssmmessages:OpenControlChannel",
+      "ssmmessages:OpenDataChannel"
+    ]
+    resources = ["*"]
+  }
 }
 
 resource "aws_iam_role_policy" "logger_task" {
@@ -62,7 +138,6 @@ resource "aws_ecs_task_definition" "logger" {
     PROJECT_FULL_NAME  = var.project_full_name,
     ENVIRONMENT        = var.environment_name,
     AWS_ACCOUNT_ID     = var.aws_account_id,
-    ADDITIONAL_SECRETS = local.secrets_in_definition,
   })
 }
 
